@@ -24,17 +24,30 @@ interface Petal {
   swaySpeed: number;
   swayOffset: number;
   color: string;
+  variant: number; // Variante de forme de pétale
 }
 
+// Formes de pétale de cerisier réalistes
+const PETAL_PATHS = [
+  // Forme 1: Pétale classique avec encoche
+  "M50,0 C60,10 80,25 85,40 C90,55 90,70 80,85 C70,100 55,100 50,100 C45,100 30,100 20,85 C10,70 10,55 15,40 C20,25 40,10 50,0",
+  
+  // Forme 2: Pétale plus arrondi
+  "M50,0 C65,5 80,20 90,40 C95,60 90,80 75,90 C60,100 40,100 25,90 C10,80 5,60 10,40 C20,20 35,5 50,0",
+  
+  // Forme 3: Pétale avec une encoche plus profonde
+  "M50,0 C65,10 75,30 75,50 C75,65 70,80 60,90 C50,100 35,95 25,85 C15,75 10,60 15,45 C20,30 35,10 50,0"
+];
+
 export function CherryBlossom({
-  count = 30,
-  minSize = 10,
-  maxSize = 20,
-  minOpacity = 0.6,
+  count = 40,
+  minSize = 15,
+  maxSize = 30,
+  minOpacity = 0.8,
   maxOpacity = 1,
-  colors = ["#ffccf9", "#ffc6e5", "#ffb7dd", "#ffa8d4", "#ff99cc"],
+  colors = ["#ffcce6", "#ffb3d9", "#ff99cc", "#ff80bf", "#ff66b3"],
 }: CherryBlossomProps) {
-  // Utiliser useRef pour stocker l'état des pétales plutôt que useState
+  // Utiliser useRef pour stocker l'état des pétale plutôt que useState
   // Cela évite les re-rendus inutiles et les boucles infinies
   const petalsRef = useRef<Petal[]>([]);
   const [petalsArray, setPetalsArray] = useState<Petal[]>([]);
@@ -49,6 +62,7 @@ export function CherryBlossom({
     
     const size = Math.random() * (maxSize - minSize) + minSize;
     const opacity = Math.random() * (maxOpacity - minOpacity) + minOpacity;
+    const variant = Math.floor(Math.random() * PETAL_PATHS.length);
     
     return {
       id,
@@ -62,15 +76,16 @@ export function CherryBlossom({
       swayAmount: Math.random() * 10 + 5, // Amplitude de balancement aléatoire
       swaySpeed: Math.random() * 2 + 0.5, // Fréquence de balancement aléatoire
       swayOffset: Math.random() * Math.PI * 2, // Décalage de phase aléatoire pour le balancement
-      color: colors[Math.floor(Math.random() * colors.length)]
+      color: colors[Math.floor(Math.random() * colors.length)],
+      variant
     };
   }, [minSize, maxSize, minOpacity, maxOpacity, colors]);
 
-  // Initialisation des pétales - exécuté une seule fois
+  // Initialisation des pétale - exécuté une seule fois
   useEffect(() => {
     if (typeof window === 'undefined' || isInitializedRef.current) return;
     
-    // Créer les pétales initiaux
+    // Créer les pétale initiaux
     const initialPetals = Array.from({ length: count }, (_, i) => createPetal(i));
     petalsRef.current = initialPetals;
     setPetalsArray(initialPetals);
@@ -102,7 +117,7 @@ export function CherryBlossom({
         return;
       }
       
-      // Mettre à jour les positions des pétales
+      // Mettre à jour les positions des pétale
       const windowHeight = window.innerHeight;
       const updatedPetals = petalsRef.current.map(petal => {
         // Mettre à jour la position en fonction de la vitesse de chute
@@ -134,7 +149,7 @@ export function CherryBlossom({
         lastUpdateTime = now;
         // Utiliser une fonction pour éviter les dépendances sur l'état précédent
         setPetalsArray(prevPetals => {
-          // Vérifier si les pétales ont réellement changé pour éviter les rendus inutiles
+          // Vérifier si les pétale ont réellement changé pour éviter les rendus inutiles
           const hasChanged = prevPetals.some((petal, index) => {
             const newPetal = petalsRef.current[index];
             return !newPetal || 
@@ -164,11 +179,11 @@ export function CherryBlossom({
     };
   }, [createPetal]); // Ne dépendre que de createPetal
 
-  // Rendu des pétales avec React.memo pour éviter les rendus inutiles
+  // Rendu des pétale avec React.memo pour éviter les rendus inutiles
   const PetalElement = useCallback(({ petal }: { petal: Petal }) => (
     <div
       key={petal.id}
-      className="absolute rounded-full mix-blend-screen animate-pulse"
+      className="absolute mix-blend-screen"
       style={{
         left: `${petal.x}px`,
         top: `${petal.y}px`,
@@ -176,11 +191,31 @@ export function CherryBlossom({
         height: `${petal.size}px`,
         opacity: petal.opacity,
         transform: `rotate(${petal.rotation}deg)`,
-        background: `radial-gradient(circle at 30% 30%, white 0%, ${petal.color} 60%)`,
-        boxShadow: `0 0 5px ${petal.color}80`,
-        clipPath: "polygon(50% 0%, 80% 30%, 100% 50%, 80% 80%, 50% 100%, 20% 80%, 0% 50%, 20% 20%)"
       }}
-    />
+    >
+      <svg 
+        width="100%" 
+        height="100%" 
+        viewBox="0 0 100 100" 
+        preserveAspectRatio="none"
+      >
+        <path 
+          d={PETAL_PATHS[petal.variant]} 
+          fill={`url(#gradient-${petal.id})`}
+          filter="url(#blur-filter)"
+        />
+        <defs>
+          <radialGradient id={`gradient-${petal.id}`} cx="30%" cy="30%" r="70%" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="white" />
+            <stop offset="40%" stopColor={petal.color} />
+            <stop offset="100%" stopColor={petal.color} stopOpacity="0.8" />
+          </radialGradient>
+          <filter id="blur-filter" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1" />
+          </filter>
+        </defs>
+      </svg>
+    </div>
   ), []);
 
   return (
